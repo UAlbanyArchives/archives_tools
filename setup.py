@@ -12,5 +12,5 @@ if __name__ == "__main__":
 	      author='Gregory Wiedeman',
 	      author_email='gwiedeman@albany.edu',
 	      url='https://www.github.com/UAlbanyArchives/archives_tools',
-	      py_modules=['dacs', ],
+	      packages=['archives_tools'],
 	     )
