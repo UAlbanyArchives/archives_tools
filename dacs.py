@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #date conversion function
 #Function to make DACS and Normal (ISO) dates from timestamp
 def stamp2DACS(timestamp):
