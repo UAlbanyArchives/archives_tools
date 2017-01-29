@@ -12,5 +12,9 @@ if __name__ == "__main__":
 	      author='Gregory Wiedeman',
 	      author_email='gwiedeman@albany.edu',
 	      url='https://www.github.com/UAlbanyArchives/archives_tools',
+	      install_requires=[
+			"requests",
+			"ConfigParser",
+	      ],
 	      packages=['archives_tools'],
 	     )
