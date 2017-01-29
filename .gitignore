@@ -1,2 +1,8 @@
 # Config file
 archives_tools/local_settings.cfg
+
+#script to test library
+archives_tools/testScript.py
+
+#errorlog
+archives_tools/aspace.log
