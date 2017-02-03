@@ -65,7 +65,7 @@ def setURL(URL):
 		config.add_section('ArchivesSpace')
 	config.set('ArchivesSpace', 'baseURL', URL)
 	writeConfig(config)
-	print "URL path updated"
+	print ("URL path updated")
 
 #function to update the user in the config file
 def setUser(user):
@@ -74,7 +74,7 @@ def setUser(user):
 		config.add_section('ArchivesSpace')
 	config.set('ArchivesSpace', 'user', user)
 	writeConfig(config)
-	print "User updated"
+	print ("User updated")
 	
 #function to update the URL in the config file
 def setPassword(password):
@@ -83,7 +83,7 @@ def setPassword(password):
 		config.add_section('ArchivesSpace')
 	config.set('ArchivesSpace', 'password', password)
 	writeConfig(config)
-	print "Password updated"
+	print ("Password updated")
 
 #function to get an ArchivesSpace session
 def getSession():
@@ -221,6 +221,16 @@ def getAccessionList(session, repo):
 	accessionData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/accessions?all_ids=true",  headers=session)
 	checkError(accessionData)
 	return accessionData.json()
+	
+#get a list of subjects
+def getSubjectList(session):
+
+	#get ASpace Login info
+	aspaceLogin = getLogin()
+	
+	subjectData= requests.get(aspaceLogin["baseURL"] + "/subjects?all_ids=true",  headers=session)
+	checkError(subjectData)
+	return subjectData.json()
 		
 ################################################################
 #REQUEST FUNCTIONS
@@ -246,9 +256,14 @@ def multipleRequest(session, repo, param, requestType):
 			numberSet = getResourceList(session, repo)
 		elif requestType.lower() == "accessions":
 			numberSet = getAccessionList(session, repo)
+		elif requestType.lower() == "subjects":
+			numberSet = getSubjectList(session)
 		returnList = []
 		for number in numberSet:
-			requestData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
+			if  requestType.lower() == "subjects":
+				requestData = requests.get(aspaceLogin["baseURL"] + "/" + requestType + "/" + str(number),  headers=session)
+			else:
+				requestData = requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
 			checkError(requestData)
 			asObject = makeObject(requestData.json())
 			returnList.append(asObject)
@@ -263,7 +278,10 @@ def multipleRequest(session, repo, param, requestType):
 		else:
 			print ("Invalid parameter, requires 'all', set (53, 75, 120), or paginated (1-100")
 		
-		requestData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "?" + limiter,  headers=session)
+		if  requestType.lower() == "subjects":
+			requestData= requests.get(aspaceLogin["baseURL"] + "/" + requestType + "?" + limiter,  headers=session)
+		else:
+			requestData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "?" + limiter,  headers=session)
 		checkError(requestData)
 		returnList = makeObject(requestData.json())
 		return returnList
@@ -278,7 +296,7 @@ def postObject(session, object):
 	del object['json']
 	objectString = json.dumps(object)
 	
-	postData = requests.post(aspaceLogin["baseURL"] + str(url), data=objectString, headers=session)
+	postData = requests.post(aspaceLogin["baseURL"] + str(uri), data=objectString, headers=session)
 	checkError(postData)
 	if postData.status_code == 200:
 		print (str(uri) + " posted back to ArchivesSpace")
@@ -441,6 +459,10 @@ def makeDate(object, dateBegin, dateEnd):
 	else:
 		object.dates.append(date)
 	return object
+
+################################################################
+#NOTES
+################################################################
 	
 #adds a single part notes
 def makeSingleNote(object, type, text):
@@ -451,9 +473,44 @@ def makeSingleNote(object, type, text):
 		object.notes.append(note)
 	return object
 	
+#adds a single part notes
+def makeMultiNote(object, type, text):
+	note = {"type": type, "jsonmodel_type": "note_multipart", "subnotes": [{"content": text, "jsonmodel_type": "note_text"}]}
+	if object.notes is None:
+		object.notes = [note]
+	else:
+		object.notes.append(note)
+	return object
+	
+################################################################
+#SUBJECTS
+################################################################
+
+#gets a set of subjects you can iterate though
+def getSubjects(session, param):
+
+	subjectList = multipleRequest(session, "", param, "subjects")
+	return subjectList
+
+
+#adds a subject reference
+def addSubject(session, object, subjectRef):
+
+	if object.subjects is None:
+		object.subjects = [{"ref": subjectRef}]
+	else:
+		object.subjects.append({"ref": subjectRef})
+	return object
+			
+
+
+
+################################################################
+#CONTAINERS AND LOCATIONS
+################################################################
+	
 #add a container instance with a location
+#NOT COMPLETED
 def addContainerLocation(object, containerName, location):
 	instance = {"jsonmodel_type":"instance", "is_representative":False,"instance_type":"mixed_materials"}
-	instance["container"] = 
-	
-	
+	instance["container"] = []
