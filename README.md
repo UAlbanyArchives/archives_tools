@@ -22,7 +22,7 @@ A Python library for working with the ArchivesSpace API
 	AS.setPassword("admin")
 
 
-* Keep in mind that these values are stored in pain text in you python library directory
+* Keep in mind that these values are stored in plain text in your python library directory
 
 ## Principles
 
