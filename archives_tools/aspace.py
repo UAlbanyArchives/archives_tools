@@ -50,12 +50,15 @@ def writeConfig(config):
 		config.write(f)
 	
 #basic function to get ASpace login details from a config file
-def getLogin():
-	config = readConfig()
-	
-	#make dictionary with basic ASpace login info
-	aspaceLogin = {'baseURL': config.get('ArchivesSpace', 'baseURL'), 'user': config.get('ArchivesSpace', 'user'), 'password': config.get('ArchivesSpace', 'password')}
-	return aspaceLogin
+def getLogin(aspaceLogin = None):
+	if aspaceLogin is None:
+		config = readConfig()
+		
+		#make tuple with basic ASpace login info
+		aspaceLogin = (config.get('ArchivesSpace', 'baseURL'), config.get('ArchivesSpace', 'user'), config.get('ArchivesSpace', 'password'))
+		return aspaceLogin
+	else:
+		return aspaceLogin
 
 	
 #function to update the URL in the config file
@@ -86,13 +89,13 @@ def setPassword(password):
 	print ("Password updated")
 
 #function to get an ArchivesSpace session
-def getSession():
+def getSession(aspaceLogin = None):
 
-	#get dictionary of login details
-	aspaceLogin = getLogin()
+	#get tuple of login details if not provided with one
+	aspaceLogin = getLogin(aspaceLogin)
 		
 	#inital request for session
-	r = requests.post(aspaceLogin["baseURL"] + "/users/" + aspaceLogin["user"]  + "/login", data = {"password":aspaceLogin["password"]})
+	r = requests.post(aspaceLogin[0] + "/users/" + aspaceLogin[1]  + "/login", data = {"password":aspaceLogin[2]})
 	checkError(r)	
 	print ("ASpace Connection Successful")
 	sessionID = r.json()["session"]
@@ -203,32 +206,32 @@ class Accession(object):
 #GETTING LIST OF LARGE SETS: ACCESSIONS, RESOURCES, etc.
 ################################################################	
 
-def getResourceList(session, repo):
+def getResourceList(session, repo, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
-	resourceData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/resources?all_ids=true",  headers=session)
+	resourceData= requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/resources?all_ids=true",  headers=session)
 	checkError(resourceData)
 	return resourceData.json()
 	
 #get a list of accession numbers
-def getAccessionList(session, repo):
+def getAccessionList(session, repo, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
-	accessionData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/accessions?all_ids=true",  headers=session)
+	accessionData= requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/accessions?all_ids=true",  headers=session)
 	checkError(accessionData)
 	return accessionData.json()
 	
 #get a list of subjects
-def getSubjectList(session):
+def getSubjectList(session, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
-	subjectData= requests.get(aspaceLogin["baseURL"] + "/subjects?all_ids=true",  headers=session)
+	subjectData= requests.get(aspaceLogin[0] + "/subjects?all_ids=true",  headers=session)
 	checkError(subjectData)
 	return subjectData.json()
 		
@@ -236,19 +239,19 @@ def getSubjectList(session):
 #REQUEST FUNCTIONS
 ################################################################	
 		
-def singleRequest(session, repo, number, requestType):
+def singleRequest(session, repo, number, requestType, aspaceLogin = None):
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 
-	requestData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
+	requestData = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
 	checkError(requestData)
 	returnList = makeObject(requestData.json())
 	return returnList
 		
-def multipleRequest(session, repo, param, requestType):
+def multipleRequest(session, repo, param, requestType, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
 	#get list of all resources and loop thorugh them
 	if param.lower().strip() == "all":
@@ -261,9 +264,9 @@ def multipleRequest(session, repo, param, requestType):
 		returnList = []
 		for number in numberSet:
 			if  requestType.lower() == "subjects":
-				requestData = requests.get(aspaceLogin["baseURL"] + "/" + requestType + "/" + str(number),  headers=session)
+				requestData = requests.get(aspaceLogin[0] + "/" + requestType + "/" + str(number),  headers=session)
 			else:
-				requestData = requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
+				requestData = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
 			checkError(requestData)
 			asObject = makeObject(requestData.json())
 			returnList.append(asObject)
@@ -279,35 +282,35 @@ def multipleRequest(session, repo, param, requestType):
 			print ("Invalid parameter, requires 'all', set (53, 75, 120), or paginated (1-100")
 		
 		if  requestType.lower() == "subjects":
-			requestData= requests.get(aspaceLogin["baseURL"] + "/" + requestType + "?" + limiter,  headers=session)
+			requestData= requests.get(aspaceLogin[0] + "/" + requestType + "?" + limiter,  headers=session)
 		else:
-			requestData= requests.get(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/" + requestType + "?" + limiter,  headers=session)
+			requestData= requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/" + requestType + "?" + limiter,  headers=session)
 		checkError(requestData)
 		returnList = makeObject(requestData.json())
 		return returnList
 		
-def postObject(session, object):
+def postObject(session, object, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 			
 	uri = object.uri
 	del object['fields']
 	del object['json']
 	objectString = json.dumps(object)
 	
-	postData = requests.post(aspaceLogin["baseURL"] + str(uri), data=objectString, headers=session)
+	postData = requests.post(aspaceLogin[0] + str(uri), data=objectString, headers=session)
 	checkError(postData)
 	if postData.status_code == 200:
 		print (str(uri) + " posted back to ArchivesSpace")
 		
-def deleteObject(session, object):
+def deleteObject(session, object, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
 	uri = object.uri
-	deleteRequest = requests.delete(aspaceLogin["baseURL"] + str(uri),  headers=session)
+	deleteRequest = requests.delete(aspaceLogin[0] + str(uri),  headers=session)
 	checkError(deleteRequest)
 	if deleteRequest.status_code == 200:
 		print (str(URI) + " Deleted")
@@ -317,12 +320,12 @@ def deleteObject(session, object):
 #REPOSITORIES
 ################################################################
 		
-def getRepositories(session):
+def getRepositories(session, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
-	repoData = requests.get(aspaceLogin["baseURL"] + "/repositories",  headers=session)
+	repoData = requests.get(aspaceLogin[0] + "/repositories",  headers=session)
 	checkError(repoData)
 	repoList = makeObject(repoData.json())
 	return repoList
@@ -342,8 +345,23 @@ def getResources(session, repo, param):
 #return resource object with number
 def getResource(session, repo, number):
 
-	resourceList = singleRequest(session, repo, number, "resources")
-	return resourceList
+	resource = singleRequest(session, repo, number, "resources")
+	return resource
+	
+#return a resource object by id_0 field using the index
+def getResourceID(session, repo, id_0, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+
+	response = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/search?page=1&aq={\"query\":{\"field\":\"identifier\", \"value\":\"" + id_0 + "\", \"jsonmodel_type\":\"field_query\"}}",  headers=session)
+	checkError(response)
+	if len(response.json()["results"]) < 1:
+		print ("Error: could not find results for resource " + str(id_0))
+	else:
+		resourceID = response.json()["results"][0]["id"].split("/resources/")[1]
+		
+		resource = singleRequest(session, repo, resourceID, "resources")
+		return resource
 	
 #creates an empty resource
 def makeResource():
@@ -352,29 +370,29 @@ def makeResource():
 	resourceObject = makeObject(emptyResource)
 	return resourceObject
 	
-def postResource(session, repo, resoruceObject):
+def postResource(session, repo, resourceObject, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 			
-	del resoruceObject['fields']
-	del resoruceObject['json']
-	resourceString = json.dumps(resoruceObject)
+	del resourceObject['fields']
+	del resourceObject['json']
+	resourceString = json.dumps(resourceObject)
 	
-	postResource = requests.post(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/resources", data=resourceString, headers=session)
+	postResource = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/resources", data=resourceString, headers=session)
 	checkError(postResource)
 	if postResource.status_code == 200:
 		print ("New resource posted to ArchivesSpace")
 
 #return resource tree object
-def getTree(session, resourceObject):
+def getTree(session, resourceObject, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
 	uri = resourceObject.uri	
 	
-	treeData = requests.get(aspaceLogin["baseURL"] + str(uri) + "/tree",  headers=session)
+	treeData = requests.get(aspaceLogin[0] + str(uri) + "/tree",  headers=session)
 	checkError(treeData)
 	treeObject = makeObject(treeData.json())
 	return treeObject
@@ -383,13 +401,24 @@ def getTree(session, resourceObject):
 #ARCHIVAL OBJECTS
 ################################################################
 	
-#return resource tree object
-def getArchObj(session, recordUri):
+#return archival object by id
+def getArchObj(session, recordUri, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 	
-	aoData = requests.get(aspaceLogin["baseURL"] + str(recordUri),  headers=session)
+	aoData = requests.get(aspaceLogin[0] + str(recordUri),  headers=session)
+	checkError(aoData)
+	aoObject = makeObject(aoData.json())
+	return aoObject
+	
+#return archival object by Ref ID
+def getArchObjID(session, repo, refID, aspaceLogin = None):
+
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	#does not work
+	aoData = requests.get(aspaceLogin[0] + "/repositories/" + repo + "/find_by_id/archival_objects", headers=session)
 	checkError(aoData)
 	aoObject = makeObject(aoData.json())
 	return aoObject
@@ -419,16 +448,16 @@ def makeAccession():
 	accessionObject.accession_date = datetime.now().isoformat().split("T")[0]
 	return accessionObject
 	
-def postAccession(session, repo, accessionObject):
+def postAccession(session, repo, accessionObject, aspaceLogin = None):
 
 	#get ASpace Login info
-	aspaceLogin = getLogin()
+	aspaceLogin = getLogin(aspaceLogin)
 			
 	del accessionObject['fields']
 	del accessionObject['json']
 	accessionString = json.dumps(accessionObject)
 	
-	postAccession = requests.post(aspaceLogin["baseURL"] + "/repositories/" + str(repo) + "/accessions", data=accessionString, headers=session)
+	postAccession = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/accessions", data=accessionString, headers=session)
 	checkError(postAccession)
 	if postAccession.status_code == 200:
 		print ("New accession posted to ArchivesSpace")

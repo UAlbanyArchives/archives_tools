@@ -22,13 +22,18 @@ accession = AS.makeDate(accession, "1974-01-04", "1994-08-30")
 AS.postAccession(session, repo, accession)
 """
 
-collection = AS.getResource(session, repo, "1864")
+
+collection = AS.getResourceID(session, repo, "nam_apap313")
+print collection.title
+
+"""
 for note in collection.notes:
 	if note.type == "accessrestrict":
 		note.publish = True
 		for subnote in note.subnotes:
 			subnote.publish = True
 			print ":)"
+"""
 
 
 
