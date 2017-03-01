@@ -1,0 +1,11 @@
+setup.py
+archives_tools/__init__.py
+archives_tools/aspace.py
+archives_tools/dacs.py
+archives_tools/migrateCMS.py
+archives_tools/testScript.py
+archives_tools.egg-info/PKG-INFO
+archives_tools.egg-info/SOURCES.txt
+archives_tools.egg-info/dependency_links.txt
+archives_tools.egg-info/requires.txt
+archives_tools.egg-info/top_level.txt

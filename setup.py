@@ -14,6 +14,7 @@ if __name__ == "__main__":
 	      url='https://www.github.com/UAlbanyArchives/archives_tools',
 	      install_requires=[
 			"requests",
+			"easydict",
 			"ConfigParser",
 	      ],
 	      packages=['archives_tools'],
