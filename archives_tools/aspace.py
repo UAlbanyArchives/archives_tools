@@ -142,16 +142,16 @@ def makeObject(jsonData):
 		#checks if list of json objects or just a single one
 		for thing in jsonData:
 			object = edict(thing)
-			object.fields = fields(thing)
-			object.json = thing
+			#object.fields = fields(thing)
+			#object.json = thing
 			itemList.append(object)
 		return itemList
 
 	else:
 		#single json object
 		object = edict(jsonData)
-		object.fields = fields(jsonData)
-		object.json = jsonData
+		#object.fields = fields(jsonData)
+		#object.json = jsonData
 		return object
 		
 ################################################################
@@ -295,8 +295,8 @@ def postObject(session, object, aspaceLogin = None):
 	aspaceLogin = getLogin(aspaceLogin)
 			
 	uri = object.uri
-	del object['fields']
-	del object['json']
+	#del object['fields']
+	#del object['json']
 	objectString = json.dumps(object)
 	
 	postData = requests.post(aspaceLogin[0] + str(uri), data=objectString, headers=session)
