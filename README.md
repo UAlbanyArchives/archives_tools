@@ -15,6 +15,7 @@ A Python library for working with the ArchivesSpace API
 
 * you can clone the repo, and install with setup.py:
 
+`
 
 	git clone https://github.com/UAlbanyArchives/archives_tools
 	python setup.py install
@@ -22,6 +23,7 @@ A Python library for working with the ArchivesSpace API
 
 * aspace can optionally be set up to us local config file called local_settings.cfg which places itself in you Python lib directory. Three values stored there can be edited in the .cfg file manually or by using the library:
 
+`
 
 	from archives_ tools import aspace as AS
 		
@@ -47,6 +49,7 @@ A Python library for working with the ArchivesSpace API
 
 * Once these values are stored, you can connect with ArchivesSpace by using `AS.getSession()`:
 
+`
 
 	from archives_tools import aspace as AS
 
@@ -54,6 +57,7 @@ A Python library for working with the ArchivesSpace API
 
 * As with all functions you can also use a tuple each time:
 
+`
 
 	from archives_tools import aspace as AS
 
@@ -76,6 +80,7 @@ A Python library for working with the ArchivesSpace API
 
 * Returns a repository object
 
+`
 
 	from archives_tools import aspace as AS
 
@@ -95,6 +100,7 @@ A Python library for working with the ArchivesSpace API
 		* login data tuple is optional second argument
 		* Repository number as a string
 
+`
 
 	from archives_tools import aspace as AS
 
@@ -124,6 +130,7 @@ A Python library for working with the ArchivesSpace API
 			* A range of the total resources for pagination: "50-100"
 				* Note that these are not resource numbers, but the second set of 50 resoruces
 
+`
 
 	from archives_tools import aspace as AS
 
