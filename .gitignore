@@ -3,6 +3,8 @@ archives_tools/local_settings.cfg
 
 #script to test library
 #archives_tools/testScript.py
+archives_tools/aspace.pyc
+archives_tools/dacs.pyc
 
 #errorlog
 archives_tools/aspace.log

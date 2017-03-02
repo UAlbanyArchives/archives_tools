@@ -26,8 +26,8 @@ AS.postAccession(session, repo, accession)
 #collection = AS.getResourceID(session, repo, "nam_apap335")
 #print collection.keys()
 
-archObj = AS.getArchObjID(session, repo)
-AS.pp(archObj)
+#archObj = AS.getArchObjID(session, repo)
+#AS.pp(archObj)
 
 """
 for note in collection.notes:
@@ -38,7 +38,10 @@ for note in collection.notes:
 			print ":)"
 """
 
-
+for collection in AS.getResources(session, repo, "all"):
+	if collection.ead_id.endswith("apap313"):
+		print "found " + collection.title
+		print collection.uri
 
 
 """
