@@ -25,7 +25,7 @@ A Python library for working with the ArchivesSpace API
 
 `
 
-	from archives_ tools import aspace as AS
+	from archives_tools import aspace as AS
 		
 	AS.setURL("http://localhost:8089")
 	AS.setUser("admin")
