@@ -11,16 +11,26 @@ A Python library for working with the ArchivesSpace API
 
 ## Setup
 
-* aspace uses a local config file called local_settings.cfg which places itself in you Python lib directory. Three values stored there can be edited manually or by using the library:
+* you can clone the repo, and install with setup.py:
 
 `
 
-	import aspace as AS
+	git clone https://github.com/UAlbanyArchives/archives_tools
+	python setup.py install
+
+
+* aspace can optionally be set up to us local config file called local_settings.cfg which places itself in you Python lib directory. Three values stored there can be edited in the .cfg file manually or by using the library:
+
+`
+
+	from archives_ tools import aspace as AS
 		
-	AS.setURL("http://localhost:8080")
+	AS.setURL("http://localhost:8089")
 	AS.setUser("admin")
 	AS.setPassword("admin")
 
+
+* This prevents you from having to re-enter credentials each time, but you can also pass a tuple with each function
 
 * Keep in mind that these values are stored in plain text in your python library directory
 
@@ -39,10 +49,30 @@ A Python library for working with the ArchivesSpace API
 
 `
 
-	import aspace as AS
+	from archives_tools import aspace as AS
 
 	session = AS.getSession()
 
+* As with all functions you can also use a tuple each time:
+
+`
+
+	from archives_tools import aspace as AS
+
+	loginData = ("http://localhost:8089", "admin", "admin")	
+	session = AS.getSession(loginData)
+
+
+## Get Data from ArchivesSpace
+
+### Using Data Objects
+
+* Data objects returned from ArchivesSpace can use dot syntax (`collection.title`) but are also a dictionary of native ASpace API data, so you can also use that syntax (`collection["title"]`) and get a list of fields with `collection.keys()`.
+
+* There are a few functions for viewing the API data:
+	* `AS.pp(collection)` pretty prints the native JSON to the console
+	* `AS.fields(collection)` prints all of the data fields on different lines
+	* `AS.serializeData(collection, "/output/path/data.json")` writes the data to a pretty printed JSON file to the output file path entered as a string
 
 ### Repositories
 
@@ -50,7 +80,7 @@ A Python library for working with the ArchivesSpace API
 
 `
 
-	import aspace as AS
+	from archives_tools import aspace as AS
 
 	session = AS.getSession()
 
@@ -65,11 +95,12 @@ A Python library for working with the ArchivesSpace API
 	* Can iterate through child objects using same keys as JSON API
 	* Requires:
 		* `session`
+		* login data tuple is optional second argument
 		* Repository number as a string
 
 `
 
-	import aspace as AS
+	from archives_tools import aspace as AS
 
 	session = AS.getSession()
 	repo = "2"
