@@ -402,7 +402,7 @@ def getChildren(session, object, aspaceLogin = None):
 				else:
 					childrenObject = makeObject(child["children"])
 					return childrenObject
-	else
+	else:
 		#get children of a resource
 		childrenData = getTree(session, object, aspaceLogin)
 		return childrenData["children"]
