@@ -1,10 +1,10 @@
 import os
 import json
 import requests
-import ConfigParser
+import configparser
 from easydict import EasyDict as edict
 from datetime import datetime
-from dacs import iso2DACS
+from archives_tools.dacs import iso2DACS
 
 
 #funtions for debugging
@@ -16,7 +16,7 @@ def serializeOutput(filePath, output):
 	f.close
 def fields(object):
 	for key in object.keys():
-		print key
+		print (key)
 	
 	
 #error handler
@@ -233,11 +233,11 @@ def multipleRequest(session, repo, param, requestType, aspaceLogin = None):
 	#get list of all resources and loop thorugh them
 	if param.lower().strip() == "all":
 		if requestType.lower() == "resources":
-			numberSet = getResourceList(session, repo)
+			numberSet = getResourceList(session, repo, aspaceLogin)
 		elif requestType.lower() == "accessions":
-			numberSet = getAccessionList(session, repo)
+			numberSet = getAccessionList(session, repo, aspaceLogin)
 		elif requestType.lower() == "subjects":
-			numberSet = getSubjectList(session)
+			numberSet = getSubjectList(session, aspaceLogin)
 		returnList = []
 		for number in numberSet:
 			if  requestType.lower() == "subjects":
@@ -382,24 +382,31 @@ def getTree(session, resourceObject, aspaceLogin = None):
 	treeObject = makeObject(treeData.json())
 	return treeObject
 
-#return a list of child objects from an Archival Object	
-def getChildren(session, aoObject, aspaceLogin = None):
+#return a list of child objects from a Resource object or an Archival Object	
+def getChildren(session, object, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 	
-	aoURI = aoObject.uri
-	resourceURI = aoObject.resource.ref
+	if object.jsonmodel_type == "archival_object":
+		#get children of archival object
+		aoURI = object.uri
+		resourceURI = object.resource.ref
 	
-	childrenData = requests.get(aspaceLogin[0] + str(resourceURI) + "/tree",  headers=session)
-	checkError(childrenData)
-	for child in childrenData.json()["children"]:
-		if child["record_uri"] == aoURI:
-			if len(child["children"]) < 1:
-				print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
-			else:
-				childrenObject = makeObject(child["children"])
-				return childrenObject
-
+		childrenData = requests.get(aspaceLogin[0] + str(resourceURI) + "/tree",  headers=session)
+		checkError(childrenData)
+		#limit to only children below original archival object
+		for child in childrenData.json()["children"]:
+			if child["record_uri"] == aoURI:
+				if len(child["children"]) < 1:
+					print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
+				else:
+					childrenObject = makeObject(child["children"])
+					return childrenObject
+	else
+		#get children of a resource
+		childrenData = getTree(session, object, aspaceLogin)
+		return childrenData["children"]
+		
 	
 ################################################################
 #ARCHIVAL OBJECTS
@@ -466,8 +473,6 @@ def postAccession(session, repo, accessionObject, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 			
-	del accessionObject['fields']
-	del accessionObject['json']
 	accessionString = json.dumps(accessionObject)
 	
 	postAccession = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/accessions", data=accessionString, headers=session)

@@ -9,7 +9,7 @@ accession = AS.makeAccession()
 accession.accession_date = "2002-01-01"
 accession.id_0 = "2002.001"
 accession.title = "Michelle Crone Papers"
-accession.disposition = "Donor Name: Stephanie Madnick"
+accession.disposition = "Donor Name: Person"
 accession.provenance = "The collection includes material documenting the National March on Washington, Women's Encampment, Elword Productions, Gay Games, Full Circle Festival: Equinox '89, Lesbian & Gay Film & Video Festival, Rhythm Fest, and other events and groups."
 accession.condition_description = "oversize posters in  need of preservation treatment are @ L-12-7"
 
@@ -22,12 +22,14 @@ accession = AS.makeDate(accession, "1974-01-04", "1994-08-30")
 AS.postAccession(session, repo, accession)
 """
 
+accessions = AS.getAccessions(session, repo,  "all")
+AS.pp(accessions)
 
 #collection = AS.getResourceID(session, repo, "nam_apap335")
 #print collection.keys()
 
-archObj = AS.getArchObjID(session, repo, "3f72812ab3e84a511470bdf0cc0d212b")
-AS.pp(archObj)
+#archObj = AS.getArchObjID(session, repo)
+#AS.pp(archObj)
 
 """
 for note in collection.notes:
@@ -37,8 +39,12 @@ for note in collection.notes:
 			subnote.publish = True
 			print ":)"
 """
-
-
+"""
+for collection in AS.getResources(session, repo, "all"):
+	if collection.ead_id.endswith("apap313"):
+		print "found " + collection.title
+		print collection.uri
+"""
 
 
 """

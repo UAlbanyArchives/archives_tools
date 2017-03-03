@@ -22,6 +22,8 @@ accession = AS.makeDate(accession, "1974-01-04", "1994-08-30")
 AS.postAccession(session, repo, accession)
 """
 
+accessions = AS.getAccessions(session, repo,  "all")
+AS.pp(accessions)
 
 #collection = AS.getResourceID(session, repo, "nam_apap335")
 #print collection.keys()
@@ -37,11 +39,12 @@ for note in collection.notes:
 			subnote.publish = True
 			print ":)"
 """
-
+"""
 for collection in AS.getResources(session, repo, "all"):
 	if collection.ead_id.endswith("apap313"):
 		print "found " + collection.title
 		print collection.uri
+"""
 
 
 """
