@@ -356,14 +356,11 @@ def postResource(session, repo, resourceObject, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 			
-	del resourceObject['fields']
-	del resourceObject['json']
 	resourceString = json.dumps(resourceObject)
 	
 	postResource = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/resources", data=resourceString, headers=session)
 	checkError(postResource)
-	if postResource.status_code == 200:
-		print ("New resource posted to ArchivesSpace")
+	return postResource.status_code
 
 ################################################################
 #NAVIGATION
@@ -438,7 +435,26 @@ def getArchObjID(session, repo, refID, aspaceLogin = None):
 		recordUri = aoData.json()["archival_objects"][0]["ref"]
 		aoObject = getArchObj(session, recordUri, aspaceLogin)
 		return aoObject
-	
+		
+#creates an empty resource
+def makeArchObj():
+	objectString = '{"jsonmodel_type":"archival_object","external_ids":[],"subjects":[],"linked_events":[],"extents":[],"dates":[],"external_documents":[],"rights_statements":[],"linked_agents":[],"restrictions_apply":false,"instances":[],"notes":[],"title":"","ref_id":"", "level":""}'
+	emptyArchObj = json.loads(objectString)
+	aoObject = makeObject(emptyArchObj)
+	return aoObject
+
+def postArchObj(session, repo, aoObject, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+			
+	aoString = json.dumps(aoObject)
+	if len(aoObject.ref_id) > 0:
+		aoID = aoObject.uri.split("/archival_objects/")[1]
+		postArchObj = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/archival_objects/" + aoID, data=aoString, headers=session)
+	else:
+		postArchObj = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/archival_objects", data=aoString, headers=session)
+	checkError(postArchObj)
+	return postArchObj.status_code
 	
 ################################################################
 #ACCESSIONS
@@ -496,11 +512,24 @@ def makeExtent(object, number, type):
 
 
 #adds a date object
-def makeDate(object, dateBegin, dateEnd):
-	if len(dateEnd) > 0:
-		date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":iso2DACS(str(dateBegin) + "/" + str(dateEnd))}
+def makeDate(object, dateBegin, dateEnd = None, displayDate = None):
+	print 
+	if dateEnd is None:
+		if displayDate is None:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
+		else:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":str(displayDate)}
+	elif len(dateEnd) < 1:
+		if displayDate is None:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
+		else:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":str(displayDate)}
 	else:
-		date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
+		if displayDate is None:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":iso2DACS(str(dateBegin) + "/" + str(dateEnd))}
+		else:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":str(displayDate)}
+		
 	if object.dates is None:
 		object.dates = [date]
 	else:
