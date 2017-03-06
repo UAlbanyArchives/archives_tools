@@ -40,7 +40,7 @@ def readConfig():
 
 	#load config file from same directory
 	configPath = os.path.join(__location__, "local_settings.cfg")
-	config = ConfigParser.ConfigParser()
+	config = configparser.ConfigParser()
 	config.read(configPath)
 	return config
 	
@@ -278,8 +278,7 @@ def postObject(session, object, aspaceLogin = None):
 	
 	postData = requests.post(aspaceLogin[0] + str(uri), data=objectString, headers=session)
 	checkError(postData)
-	if postData.status_code == 200:
-		print (str(uri) + " posted back to ArchivesSpace")
+	return postData.status_code
 		
 def deleteObject(session, object, aspaceLogin = None):
 
@@ -289,8 +288,7 @@ def deleteObject(session, object, aspaceLogin = None):
 	uri = object.uri
 	deleteRequest = requests.delete(aspaceLogin[0] + str(uri),  headers=session)
 	checkError(deleteRequest)
-	if deleteRequest.status_code == 200:
-		print (str(URI) + " Deleted")
+	return deleteRequest.status_code
 		
 		
 ################################################################
@@ -438,7 +436,7 @@ def getArchObjID(session, repo, refID, aspaceLogin = None):
 		
 #creates an empty resource
 def makeArchObj():
-	objectString = '{"jsonmodel_type":"archival_object","external_ids":[],"subjects":[],"linked_events":[],"extents":[],"dates":[],"external_documents":[],"rights_statements":[],"linked_agents":[],"restrictions_apply":false,"instances":[],"notes":[],"title":"","ref_id":"", "level":""}'
+	objectString = '{"jsonmodel_type":"archival_object","external_ids":[],"subjects":[],"linked_events":[],"extents":[],"dates":[],"external_documents":[],"rights_statements":[],"linked_agents":[],"restrictions_apply":false,"instances":[],"notes":[],"title":"","level":""}'
 	emptyArchObj = json.loads(objectString)
 	aoObject = makeObject(emptyArchObj)
 	return aoObject
@@ -448,7 +446,7 @@ def postArchObj(session, repo, aoObject, aspaceLogin = None):
 	aspaceLogin = getLogin(aspaceLogin)
 			
 	aoString = json.dumps(aoObject)
-	if len(aoObject.ref_id) > 0:
+	if "ref_id" in aoObject:
 		aoID = aoObject.uri.split("/archival_objects/")[1]
 		postArchObj = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/archival_objects/" + aoID, data=aoString, headers=session)
 	else:
@@ -493,8 +491,7 @@ def postAccession(session, repo, accessionObject, aspaceLogin = None):
 	
 	postAccession = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/accessions", data=accessionString, headers=session)
 	checkError(postAccession)
-	if postAccession.status_code == 200:
-		print ("New accession posted to ArchivesSpace")
+	return postAccession.status_code
 		
 		
 ################################################################
@@ -513,22 +510,20 @@ def makeExtent(object, number, type):
 
 #adds a date object
 def makeDate(object, dateBegin, dateEnd = None, displayDate = None):
-	print 
+	if displayDate is None:
+		displayDate = ""
 	if dateEnd is None:
-		if displayDate is None:
-			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
-		else:
-			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":str(displayDate)}
-	elif len(dateEnd) < 1:
-		if displayDate is None:
-			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
-		else:
-			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"expression":str(displayDate)}
-	else:
-		if displayDate is None:
-			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":iso2DACS(str(dateBegin) + "/" + str(dateEnd))}
-		else:
+		dateEnd = ""
+	if len(dateEnd) > 0:
+		if len(displayDate) > 0:
 			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":str(displayDate)}
+		else:
+			date = {"jsonmodel_type":"date","date_type":"inclusive","label":"creation","begin":str(dateBegin),"end":str(dateEnd),"expression":iso2DACS(str(dateBegin) + "/" + str(dateEnd))}
+	else:
+		if len(displayDate) > 0:
+			date = {"jsonmodel_type":"date","date_type":"single","label":"creation","begin":str(dateBegin),"expression":str(displayDate)}
+		else:
+			date = {"jsonmodel_type":"date","date_type":"single","label":"creation","begin":str(dateBegin),"expression":iso2DACS(str(dateBegin))}
 		
 	if object.dates is None:
 		object.dates = [date]
@@ -542,7 +537,7 @@ def makeDate(object, dateBegin, dateEnd = None, displayDate = None):
 	
 #adds a single part notes
 def makeSingleNote(object, type, text):
-	note = {"type": type, "jsonmodel_type": "note_singlepart", "content": [text]}
+	note = {"type": type, "jsonmodel_type": "note_singlepart", "publish": True, "content": [text]}
 	if object.notes is None:
 		object.notes = [note]
 	else:
@@ -551,7 +546,7 @@ def makeSingleNote(object, type, text):
 	
 #adds a single part notes
 def makeMultiNote(object, type, text):
-	note = {"type": type, "jsonmodel_type": "note_multipart", "subnotes": [{"content": text, "jsonmodel_type": "note_text"}]}
+	note = {"type": type, "jsonmodel_type": "note_multipart", "publish": True,"subnotes": [{"content": text, "jsonmodel_type": "note_text", "publish": True}]}
 	if object.notes is None:
 		object.notes = [note]
 	else:
@@ -594,6 +589,63 @@ def getContainer(session, containerURI, aspaceLogin = None):
 	checkError(containerData)
 	containerObject = makeObject(containerData.json())
 	return containerObject
+
+#takes a archival object and adds reference to an existing top container via a uri string	
+def addToContainer(session, fileObject, boxUri, type2 = None, indicator2 = None, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	boxObject = getContainer(session, boxUri, aspaceLogin)
+	boxType = boxObject.type
+	boxIndicator = boxObject.indicator
+	boxLocations = boxObject.container_locations
+	newInstance = {"Jsonmodel_type": "instance", "instance_type": "mixed_materials", "is_representative": True, "container": {"indicator_1": boxIndicator, "type_1": boxType, "container_locations": boxLocations}, "sub_container": {"jsonmodel_type": "sub_container", "top_container": {"ref": boxUri}}}
+	if not type2 is None:
+		newInstance["container"]["type_2"] = type2
+		newInstance["sub_container"]["type_2"] = type2
+	if not indicator2 is None:
+		newInstance["container"]["indicator_2"] = indicator2
+		newInstance["sub_container"]["indicator_2"] = indicator2
+	fileObject.instances.append(newInstance)
+	
+	return fileObject
+	
+#Make a new container
+def makeEmptyContainer(type = None, indicator = None):
+	boxObject = {"jsonmodel_type": "top_container", "container_locations": [], "restricted": False, "active_restrictions": []}
+	if not type is None:
+		boxObject["type"] = str(type)
+	if not indicator is None:
+		boxObject["indicator"] = str(indicator)
+	return boxObject
+	
+	
+#post a container object back to Aspace
+def postContainer(session, repo, boxObject, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	boxID	= boxObject.uri.split("/top_containers/")[1]
+	boxString = json.dumps(boxObject)
+	
+	postBox = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers/" + boxID, data=boxString, headers=session)
+	checkError(postBox)
+	return postBox.status_code
+	
+#make a new container and add a file object to itemList
+def makeContainer(session, repo, type, indicator, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	boxObject = makeEmptyContainer(str(type), str(indicator))
+	boxString = json.dumps(boxObject)
+	postBox = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers", data=boxString, headers=session)
+	checkError(postBox)
+	
+	boxURI = postBox.json()["uri"]
+	boxObject = getContainer(session, boxURI, aspaceLogin)
+	
+	return boxObject
 	
 #takes a location uri string and returns a location Object
 def getLocation(session, locationURI, aspaceLogin = None):
@@ -605,8 +657,11 @@ def getLocation(session, locationURI, aspaceLogin = None):
 	locationObject = makeObject(locationData.json())
 	return locationObject
 	
-#add a container instance with a location
-#NOT COMPLETED
-def addContainerLocation(object, containerName, location):
-	instance = {"jsonmodel_type":"instance", "is_representative":False,"instance_type":"mixed_materials"}
-	instance["container"] = []
+#add a location to a container object
+def addToLocation(boxObject, locationURI, locationNote = None):
+	newLocation = {"status": "current", "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
+	if not locationNote is None:
+		newLocation["note"] = locationNote
+	boxObject.container_locations.append(newLocation)
+	
+	return boxObject
