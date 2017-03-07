@@ -665,3 +665,22 @@ def addToLocation(boxObject, locationURI, locationNote = None):
 	boxObject.container_locations.append(newLocation)
 	
 	return boxObject
+
+# Search by title for location and return location URI
+def findLocation(session, locTitle, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	location = requests.get(aspaceLogin[0] + "/search?page=1&page_size=20&q=" + locTitle,  headers=session)
+	checkError(location)
+	foundSwitch = False
+	for result in location.json()["results"]:
+		if result["title"].strip() == locTitle.strip():
+			foundSwitch = True
+			print result["uri"]
+	if foundSwitch is False:
+		print ("Error: could not find location " + locTitle)
+	else:
+		locationURI = result["uri"]
+	return locationURI
+	
+	

@@ -657,8 +657,30 @@ def getLocation(session, locationURI, aspaceLogin = None):
 	locationObject = makeObject(locationData.json())
 	return locationObject
 	
-#add a container instance with a location
-#NOT COMPLETED
-def addContainerLocation(object, containerName, location):
-	instance = {"jsonmodel_type":"instance", "is_representative":False,"instance_type":"mixed_materials"}
-	instance["container"] = []
+#add a location to a container object
+def addToLocation(boxObject, locationURI, locationNote = None):
+	newLocation = {"status": "current", "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
+	if not locationNote is None:
+		newLocation["note"] = locationNote
+	boxObject.container_locations.append(newLocation)
+	
+	return boxObject
+
+# Search by title for location and return location URI
+def findLocation(session, locTitle, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	location = requests.get(aspaceLogin[0] + "/search?page=1&page_size=20&q=" + locTitle,  headers=session)
+	checkError(location)
+	foundSwitch = False
+	for result in location.json()["results"]:
+		if result["title"].strip() == locTitle.strip():
+			foundSwitch = True
+			print result["uri"]
+	if foundSwitch is False:
+		print ("Error: could not find location " + locTitle)
+	else:
+		locationURI = result["uri"]
+	return locationURI
+	
+	
