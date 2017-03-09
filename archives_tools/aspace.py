@@ -211,6 +211,16 @@ def getSubjectList(session, aspaceLogin = None):
 	subjectData= requests.get(aspaceLogin[0] + "/subjects?all_ids=true",  headers=session)
 	checkError(subjectData)
 	return subjectData.json()
+	
+#get a list of locations
+def getLocationList(session, aspaceLogin = None):
+
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	locationData= requests.get(aspaceLogin[0] + "/locations?all_ids=true",  headers=session)
+	checkError(locationData)
+	return locationData.json()
 		
 ################################################################
 #REQUEST FUNCTIONS
@@ -238,9 +248,11 @@ def multipleRequest(session, repo, param, requestType, aspaceLogin = None):
 			numberSet = getAccessionList(session, repo, aspaceLogin)
 		elif requestType.lower() == "subjects":
 			numberSet = getSubjectList(session, aspaceLogin)
+		elif requestType.lower() == "locations":
+			numberSet = getLocationList(session, aspaceLogin)
 		returnList = []
 		for number in numberSet:
-			if  requestType.lower() == "subjects":
+			if  requestType.lower() == "subjects" or requestType.lower() == "locations":
 				requestData = requests.get(aspaceLogin[0] + "/" + requestType + "/" + str(number),  headers=session)
 			else:
 				requestData = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/" + requestType + "/" + str(number),  headers=session)
@@ -353,13 +365,19 @@ def postResource(session, repo, resourceObject, aspaceLogin = None):
 
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
+	
+	path = "/repositories/" + str(repo) + "/resources"
+	if "uri" in resourceObject.keys():
+		if len(resourceObject.uri) > 0:
+			path = resourceObject.uri
 			
 	resourceString = json.dumps(resourceObject)
 	
-	postResource = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/resources", data=resourceString, headers=session)
+	postResource = requests.post(aspaceLogin[0] + path, data=resourceString, headers=session)
 	checkError(postResource)
 	return postResource.status_code
 
+	
 ################################################################
 #NAVIGATION
 ################################################################		
@@ -646,6 +664,14 @@ def makeContainer(session, repo, type, indicator, aspaceLogin = None):
 	boxObject = getContainer(session, boxURI, aspaceLogin)
 	
 	return boxObject
+
+#takes a location uri string and returns a location Object
+def getLocations(session, repo, param, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	resourceList = multipleRequest(session, repo, param, "locations", aspaceLogin)
+	return resourceList
 	
 #takes a location uri string and returns a location Object
 def getLocation(session, locationURI, aspaceLogin = None):
@@ -658,8 +684,14 @@ def getLocation(session, locationURI, aspaceLogin = None):
 	return locationObject
 	
 #add a location to a container object
-def addToLocation(boxObject, locationURI, locationNote = None):
-	newLocation = {"status": "current", "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
+def addToLocation(boxObject, locationURI, locationNote = None, locationStatus = None, locationEndDate = None):
+	if locationStatus is None:
+		newLocation = {"status": "current", "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
+	else:
+		if locationEndDate is None:
+			newLocation = {"status": locationStatus, "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
+		else:
+			newLocation = {"status": locationStatus, "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "end_date": locationEndDate, "ref": locationURI}
 	if not locationNote is None:
 		newLocation["note"] = locationNote
 	boxObject.container_locations.append(newLocation)
@@ -676,11 +708,10 @@ def findLocation(session, locTitle, aspaceLogin = None):
 	for result in location.json()["results"]:
 		if result["title"].strip() == locTitle.strip():
 			foundSwitch = True
-			print result["uri"]
+			locationURI = result["uri"]
 	if foundSwitch is False:
 		print ("Error: could not find location " + locTitle)
 	else:
-		locationURI = result["uri"]
-	return locationURI
+		return locationURI
 	
 	

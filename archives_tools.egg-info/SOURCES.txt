@@ -4,6 +4,7 @@ archives_tools/aspace.py
 archives_tools/dacs.py
 archives_tools/migrateCMS.py
 archives_tools/testScript.py
+archives_tools/uaLocations.py
 archives_tools.egg-info/PKG-INFO
 archives_tools.egg-info/SOURCES.txt
 archives_tools.egg-info/dependency_links.txt
