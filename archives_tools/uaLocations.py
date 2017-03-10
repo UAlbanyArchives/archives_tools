@@ -6,7 +6,7 @@ def mainShelf(coordinates):
 	else:
 		coordList["Building"] = "Science Library"
 		coordList["Floor"] = "3"
-		coordList["Room"] = "Main Stacks"
+		coordList["Room"] = "Main Storage"
 		coordList["Area"] = coordinates.split("-")[0]
 		coordList["Label1"] = "Row"
 		coordList["Place1"] = coordinates.split("-")[1]
@@ -14,13 +14,13 @@ def mainShelf(coordinates):
 		coordList["Place2"] = coordinates.split("-")[2]
 		coordList["Label3"] = "Shelf"
 		coordList["Place3"] = coordinates.split("-")[3]
-		coordList["Title"] = "Science Library, 3, Main Stacks, " + coordinates.split("-")[0] + " [Row: " + coordinates.split("-")[1] + ", Bay: " + coordinates.split("-")[2] + ", Shelf: " + coordinates.split("-")[3] + "]"
+		coordList["Title"] = "Science Library, 3, Main Storage, " + coordinates.split("-")[0] + " [Row: " + coordinates.split("-")[1] + ", Bay: " + coordinates.split("-")[2] + ", Shelf: " + coordinates.split("-")[3] + "]"
 	return coordList
 
 	
 def location2ASpace(coordinates, note = None):
 
-	mainAreas = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]
+	mainAreas = ["A", "C", "D", "E", "F", "G", "H", "I", "J", "K"]
 	
 	coordList = {"Building": "", "Floor": "", "Room": "", "Area": "", "Label1": "", "Place1": "", "Label2": "", "Place2": "", "Label3": "", "Place3": "", "Title": "", "Note": ""}
 	
@@ -119,30 +119,34 @@ def location2ASpace(coordinates, note = None):
 			if not len(coordinates.split("-")) == 3:
 				print ("Error, shelf is in main stacks, but is incorrect")
 			else:
+				if coordinates.split("-")[1] == "1" or coordinates.split("-")[1] == "9":
+					lType = "Drawer"
+				else:
+					lType = "Shelf"
 				coordList["Building"] = "Science Library"
 				coordList["Floor"] = "3"
-				coordList["Room"] = "Main Stacks"
+				coordList["Room"] = "Main Storage"
 				coordList["Area"] = coordinates.split("-")[0]
 				coordList["Label1"] = "Bay"
 				coordList["Place1"] = coordinates.split("-")[1]
-				coordList["Label2"] = "Flat Storage"
+				coordList["Label2"] = lType
 				coordList["Place2"] = coordinates.split("-")[2]
-				coordList["Title"] = "Science Library, 3, Main Stacks, " + coordinates.split("-")[0] + " [Bay: " + coordinates.split("-")[1] + ", Flat Storage: " + coordinates.split("-")[2] + "]"				
+				coordList["Title"] = "Science Library, 3, Main Storage, " + coordinates.split("-")[0] + " [Bay: " + coordinates.split("-")[1] + ", " + lType + ": " + coordinates.split("-")[2] + "]"				
 			
 		elif coordinates.lower().startswith("cold"):
 			coordList["Building"] = "Science Library"
 			coordList["Floor"] = "3"
-			coordList["Room"] = "Cold Room"
+			coordList["Room"] = "Cold Storage"
 			if len(coordinates.split("-")) == 1:
 				coordList["Label1"] = "Room"
 				coordList["Place1"] = "Cold"
-				coordList["Title"] = "Science Library, 3, Cold Room [Room: Cold]"
+				coordList["Title"] = "Science Library, 3, Cold Storage [Room: Cold]"
 			if len(coordinates.split("-")) == 3:
 				coordList["Label1"] = "Bay"
 				coordList["Place1"] = coordinates.split("-")[1]
 				coordList["Label2"] = "Shelf"
 				coordList["Place2"] = coordinates.split("-")[2]
-				coordList["Title"] = 	"Science Library, 3, Cold Room [Bay: " + coordinates.split("-")[1] + ", Shelf: " + coordinates.split("-")[2] + "]"
+				coordList["Title"] = 	"Science Library, 3, Cold Storage [Bay: " + coordinates.split("-")[1] + ", Shelf: " + coordinates.split("-")[2] + "]"
 			elif len(coordinates.split("-")) == 4:
 				coordList["Label1"] = "Cabinet"
 				coordList["Place1"] = coordinates.split("-")[1]
@@ -150,7 +154,7 @@ def location2ASpace(coordinates, note = None):
 				coordList["Place2"] = coordinates.split("-")[2]
 				coordList["Label3"] = "Section"
 				coordList["Place3"] = coordinates.split("-")[3]
-				coordList["Title"] = "Science Library, 3, Cold Room [Cabinet: " + coordinates.split("-")[1] + ", Drawer: " + coordinates.split("-")[2] + ", Section: " + coordinates.split("-")[3] + "]"
+				coordList["Title"] = "Science Library, 3, Cold Storage [Cabinet: " + coordinates.split("-")[1] + ", Drawer: " + coordinates.split("-")[2] + ", Section: " + coordinates.split("-")[3] + "]"
 			
 			else:
 				print ("Error, shelf is in cold room, but is incorrect")	
