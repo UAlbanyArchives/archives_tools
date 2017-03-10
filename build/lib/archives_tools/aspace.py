@@ -688,30 +688,40 @@ def addToLocation(boxObject, locationURI, locationNote = None, locationStatus = 
 	if locationStatus is None:
 		newLocation = {"status": "current", "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
 	else:
-		if locationEndDate is None:
-			newLocation = {"status": locationStatus, "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "ref": locationURI}
-		else:
-			newLocation = {"status": locationStatus, "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "end_date": locationEndDate, "ref": locationURI}
+		newLocation = {"status": locationStatus, "jsonmodel_type": "container_location", "start_date": datetime.now().isoformat().split("T")[0], "end_date": locationEndDate, "ref": locationURI}
 	if not locationNote is None:
 		newLocation["note"] = locationNote
 	boxObject.container_locations.append(newLocation)
-	
 	return boxObject
 
 # Search by title for location and return location URI
 def findLocation(session, locTitle, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
-	location = requests.get(aspaceLogin[0] + "/search?page=1&page_size=20&q=" + locTitle,  headers=session)
+	location = requests.get(aspaceLogin[0] + "/search?page=1&page_size=100&q=%22" + locTitle + "%22",  headers=session)
 	checkError(location)
 	foundSwitch = False
 	for result in location.json()["results"]:
-		if result["title"].strip() == locTitle.strip():
+		if result["title"].strip().lower() == locTitle.strip().lower():
 			foundSwitch = True
 			locationURI = result["uri"]
 	if foundSwitch is False:
-		print ("Error: could not find location " + locTitle)
+		print ("Error1: could not find location " + locTitle)
+		if len(location.json()["results"]) > 0:
+			pp(location.json())
 	else:
 		return locationURI
+		
+#post a location object back to Aspace
+def postLocation(session, locationObject, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	locationURI = locationObject.uri
+	locationString = json.dumps(locationObject)
+	
+	postLoc = requests.post(aspaceLogin[0] + locationURI, data=locationString, headers=session)
+	checkError(postLoc)
+	return postLoc.status_code
 	
 	
