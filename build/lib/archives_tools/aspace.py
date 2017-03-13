@@ -725,3 +725,22 @@ def postLocation(session, locationObject, aspaceLogin = None):
 	return postLoc.status_code
 	
 	
+
+################################################################
+#EXPORTING EAD
+################################################################
+
+def exportResource(session, repo, resourceObject, destination, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	resourceID = resourceObject.uri.split("/resources/")[1]
+	resourceID0 = resourceObject.id_0
+	
+	ead = requests.get(aspaceLogin[0] + "/repositories/" + repo + "/resource_descriptions/" +str(resourceID) + ".xml", headers=session)
+	if not ead.status_code == 200:
+		print ("Export Error: " + str(ead.status_code))
+	else:
+		f = open(os.path.join(destination, resourceID0 + ".xml"), 'w')
+		f.write(ead.text)
+		f.close()
