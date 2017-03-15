@@ -741,6 +741,8 @@ def exportResource(session, repo, resourceObject, destination, aspaceLogin = Non
 	if not ead.status_code == 200:
 		print ("Export Error: " + str(ead.status_code))
 	else:
-		f = open(os.path.join(destination, resourceID0 + ".xml"), 'w')
+		outputPath = os.path.join(destination, resourceID0 + ".xml")
+		f = open(os.path.join(outputPath, 'w')
 		f.write(ead.text)
 		f.close()
+		return outputPath
