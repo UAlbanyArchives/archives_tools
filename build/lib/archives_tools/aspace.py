@@ -400,21 +400,34 @@ def getChildren(session, object, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 	
+	def findChild(tree, uri, childrenObject):
+		for child in tree["children"]:
+			if len(child["children"]) < 1:
+				pass
+			elif child["record_uri"] == uri:
+				childrenObject = makeObject(child)
+			else:
+				childrenObject = findChild(child, uri, childrenObject)
+		return childrenObject
+		
+		
 	if object.jsonmodel_type == "archival_object":
 		#get children of archival object
 		aoURI = object.uri
 		resourceURI = object.resource.ref
 	
 		childrenData = requests.get(aspaceLogin[0] + str(resourceURI) + "/tree",  headers=session)
+		
 		checkError(childrenData)
 		#limit to only children below original archival object
-		for child in childrenData.json()["children"]:
-			if child["record_uri"] == aoURI:
-				if len(child["children"]) < 1:
-					print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
-				else:
-					childrenObject = makeObject(child["children"])
-					return childrenObject
+		childrenObject = findChild(childrenData.json(), aoURI, None)
+		if childrenObject is None:
+			print ("ERROR could not find archival object in resource tree, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
+		elif len(childrenObject["children"]) < 1:
+			print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
+		else:
+			return childrenObject
+
 	else:
 		#get children of a resource
 		childrenData = getTree(session, object, aspaceLogin)
@@ -742,7 +755,7 @@ def exportResource(session, repo, resourceObject, destination, aspaceLogin = Non
 		print ("Export Error: " + str(ead.status_code))
 	else:
 		outputPath = os.path.join(destination, resourceID0 + ".xml")
-		f = open(os.path.join(outputPath, 'w')
+		f = open(outputPath, 'w')
 		f.write(ead.text)
 		f.close()
 		return outputPath
