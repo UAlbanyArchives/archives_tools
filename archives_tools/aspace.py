@@ -212,6 +212,15 @@ def getSubjectList(session, aspaceLogin = None):
 	checkError(subjectData)
 	return subjectData.json()
 	
+#get a list of top containers
+def getContainerList(session, repo, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	containerData= requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers?all_ids=true",  headers=session)
+	checkError(locationData)
+	return containerData.json()
+	
 #get a list of locations
 def getLocationList(session, aspaceLogin = None):
 
@@ -248,6 +257,8 @@ def multipleRequest(session, repo, param, requestType, aspaceLogin = None):
 			numberSet = getAccessionList(session, repo, aspaceLogin)
 		elif requestType.lower() == "subjects":
 			numberSet = getSubjectList(session, aspaceLogin)
+		elif requestType.lower() == "top_containers":
+			numberSet = getContainerList(session, repo, aspaceLogin)
 		elif requestType.lower() == "locations":
 			numberSet = getLocationList(session, aspaceLogin)
 		returnList = []
@@ -513,6 +524,23 @@ def makeAccession():
 	accessionObject.accession_date = datetime.now().isoformat().split("T")[0]
 	return accessionObject
 	
+#find accessions by title, returns list of uris
+def findAccessions(session, repo, query, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	accessionList = []
+	response = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/search?page=1&filter_term[]={\"primary_type\"%3A\"accession\"}&q=" + str(query),  headers=session)
+	checkError(response)
+	if len(response.json()["results"]) < 1:
+		print ("Error: could not find accession results for " + str(query))
+	else:
+		for result in response.json()["results"]:
+			if query in result["title"]:
+				accessionList.append(result["uri"])
+		return accessionList
+	
+	
 def postAccession(session, repo, accessionObject, aspaceLogin = None):
 
 	#get ASpace Login info
@@ -620,6 +648,14 @@ def getContainer(session, containerURI, aspaceLogin = None):
 	checkError(containerData)
 	containerObject = makeObject(containerData.json())
 	return containerObject
+	
+#returns a list of resources you can iterate though with all, a set, or a range of resource numbers
+def getContainers(session, repo, param, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	containerList = multipleRequest(session, repo, param, "top_containers", aspaceLogin)
+	return containerList
 
 #takes a archival object and adds reference to an existing top container via a uri string	
 def addToContainer(session, fileObject, boxUri, type2 = None, indicator2 = None, aspaceLogin = None):

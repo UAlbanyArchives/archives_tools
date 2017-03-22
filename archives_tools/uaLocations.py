@@ -84,6 +84,8 @@ def location2ASpace(coordinates, note = None):
 						coordList = mainShelf(coordStart + str(bay) + "-" + str(shelf))
 						totalList.append(coordList)
 			coordList = totalList
+		if "(" in coord2Note:
+			coordList["Note"] = coord2Note.split("(")[1].split(")")[0].strip()
 	
 	else:
 		#single shelf
@@ -227,8 +229,46 @@ def location2ASpace(coordinates, note = None):
 				coordList["Title"] = "Science Library, 3, Vault [Row: " + coordinates.split("-")[2] + ", Bay: " + coordinates.split("-")[3] + ", Shelf: " + coordinates.split("-")[4] + "]" 
 			else:
 				print ("Error, shelf is in vault, but is incorrect: " + coordinates)	
-			
-	if not note is None:
-		coordList["Note"] = note
+		
+		if "(" in coordinates:
+			coordList["Note"] =  coordinates.split("(")[1].split(")")[0].strip()
+	
 		
 	return coordList, isRange
+	
+def ASpace2Location(locationTitle):
+	if "CCBE" in locationTitle:
+		#index out of rance for apap306?
+		locationOutput = "CCBE-" + locationTitle.split("Row: ")[1].replace("]", "")
+		
+	elif "Reading Room" in locationTitle:
+		locationOutput = "RR-" + locationTitle.split("Shelf: ")[1].replace("]", "")
+		
+	elif "Main Library" in locationTitle:
+		room = locationTitle.split("Basement, ")[1]
+		if "Room" in room:
+			locationOutput = room.split(" [")[0]
+		else:
+			locationOutput = room.split(" [")[0] +"-" + room.split("Row: ")[1].split(",")[0] + "-" + room.split("Bay: ")[1].split(",")[0] + "-" + room.split("Shelf: ")[1].split("]")[0]
+			
+	elif "Cold Storage" in locationTitle:
+		if "Room" in locationTitle:
+			locationOutput = "Cold"
+		elif  "Cabinet" in locationTitle:
+			locationOutput = "Cold-" + locationTitle.split("Cabinet: ")[1].split(",")[0] + "-" +  locationTitle.split("Drawer: ")[1].split(",")[0] + "-" + locationTitle.split("Section: ")[1].split("]")[0]
+		else:
+			locationOutput = "Cold-" + locationTitle.split("Bay: ")[1].split(",")[0] + "-" + locationTitle.split("Shelf: ")[1].split("]")[0]
+			
+	elif "Vault" in locationTitle:
+		if "Room" in locationTitle:
+			locationOutput = "Vault"
+		else:
+			locationOutput = "Vault-V-" + locationTitle.split("Row: ")[1].split(",")[0] + "-" +  locationTitle.split("Bay: ")[1].split(",")[0] + "-" + locationTitle.split("Shelf: ")[1].split("]")[0]
+			
+	elif "Main Storage, L" in locationTitle:
+		locationOutput = "L-" + locationTitle.split("Bay: ")[1].split(",")[0] + "-" + locationTitle.split("Bay: ")[1].split(": ")[1].replace("]", "")
+		
+	else:
+		locationOutput =  locationTitle.split("Main Storage, ")[1].split(" [")[0] + "-" + locationTitle.split("Row: ")[1].split(",")[0] + "-" +  locationTitle.split("Bay: ")[1].split(",")[0] + "-" + locationTitle.split("Shelf: ")[1].split("]")[0]	
+		
+	return locationOutput
