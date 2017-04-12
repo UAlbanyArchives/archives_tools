@@ -5,7 +5,7 @@ import configparser
 from easydict import EasyDict as edict
 from datetime import datetime
 from archives_tools.dacs import iso2DACS
-
+import uuid
 
 #funtions for debugging
 def pp(output):
@@ -364,7 +364,29 @@ def getResourceID(session, repo, id_0, aspaceLogin = None):
 		
 		resource = singleRequest(session, repo, resourceID, "resources", aspaceLogin)
 		return resource
+
+#returns a list of resources updated since ISO param
+def getResourcesSince(session, repo, param, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
 	
+	"""also accepts ISO (does not work)
+	if "-" in param:
+		if "t" in param.lower():
+			timeObject = datetime.strptime(param, '%Y-%m-%dT%H:%M:%S.%fZ')
+		else:
+			timeObject = datetime.strptime(param, '%Y-%m-%d %H:%M:%S.%fZ')
+		param = (timeObject - datetime(1970, 1, 1)).total_seconds()
+	"""
+	
+	resourceList = []
+	requestData = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/resources?all_ids=true&modified_since=" + str(param),  headers=session)
+	checkError(requestData)
+	requestList = requestData.json()
+	for resourceID in requestList:
+		resourceList.append(getResource(session, repo, resourceID, aspaceLogin))
+	return resourceList
+		
 #creates an empty resource
 def makeResource():
 	resourceString = '{"jsonmodel_type":"resource","external_ids":[],"subjects":[],"linked_events":[],"extents":[],"dates":[],"external_documents":[],"rights_statements":[],"linked_agents":[],"restrictions":false,"revision_statements":[],"instances":[],"deaccessions":[],"related_accessions":[],"classifications":[],"notes":[],"title":"","id_0":"","level":"","language":"","ead_id":"","finding_aid_date":"","ead_location":""}'
@@ -494,7 +516,7 @@ def postArchObj(session, repo, aoObject, aspaceLogin = None):
 	else:
 		postArchObj = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/archival_objects", data=aoString, headers=session)
 	checkError(postArchObj)
-	return postArchObj.status_code
+	return postArchObj
 	
 ################################################################
 #ACCESSIONS
@@ -622,6 +644,15 @@ def getSubjects(session, param, aspaceLogin = None):
 	subjectList = multipleRequest(session, "", param, "subjects")
 	return subjectList
 
+#gets a subject object by its URI
+def getSubject(session, uri, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	subjectData = requests.get(aspaceLogin[0] + str(uri),  headers=session)
+	checkError(subjectData)
+	subjectObject = makeObject(subjectData.json())
+	return subjectObject
 
 #adds a subject reference
 def addSubject(session, object, subjectRef):
@@ -692,12 +723,16 @@ def postContainer(session, repo, boxObject, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 	
-	boxID	= boxObject.uri.split("/top_containers/")[1]
-	boxString = json.dumps(boxObject)
-	
-	postBox = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers/" + boxID, data=boxString, headers=session)
+	if "uri" in boxObject.keys():
+		boxID = boxObject.uri.split("/top_containers/")[1]
+		boxString = json.dumps(boxObject)
+		postBox = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers/" + boxID, data=boxString, headers=session)
+	else:
+		boxString = json.dumps(boxObject)
+		postBox = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/top_containers", data=boxString, headers=session)
+		
 	checkError(postBox)
-	return postBox.status_code
+	return postBox
 	
 #make a new container and add a file object to itemList
 def makeContainer(session, repo, type, indicator, aspaceLogin = None):
@@ -773,12 +808,57 @@ def postLocation(session, locationObject, aspaceLogin = None):
 	checkError(postLoc)
 	return postLoc.status_code
 	
+################################################################
+#DIGITAL OBJECTS (DAO)
+################################################################
+
+#get an individual archival_object
+def getDAO(session, repo, daoURI, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	daoData = requests.get(aspaceLogin[0] + str(daoURI),  headers=session)
+	checkError(daoData)
+	daoObject = makeObject(daoData.json())
+	return daoObject
+	
+#make an individual archival_object
+def makeDAO(daoTitle, fileURL):
+	daoUUID = str(uuid.uuid4())
+	daoObject = {"jsonmodel_type": "digital_object", "external_ids": [], "subjects": [], "linked_events": [], "extents": [], "dates": [], "external_documents": [], "rights_statements": [], "linked_agents": [], "file_versions": [], "restrictions": False, "notes": [], "linked_instances": [], "title": daoTitle, "language": "", "digital_object_id": daoUUID}
+	fileVersion = { "jsonmodel_type":"file_version", "is_representative": True, "file_uri": fileURL, "use_statement": "", "xlink_actuate_attribute":"none", "xlink_show_attribute":"embed"}
+	daoObject["file_versions"].append(fileVersion)
+	
+	daoObject = makeObject(daoObject)
+	return daoObject	
+
+#adds a digital object instance to an archival object
+def addDAO(archObj, daoURI):
+	daoLink = {"jsonmodel_type": "instance", "digital_object": {"ref": daoURI}, "instance_type": "digital_object", "is_representative": True}
+	archObj["instances"].append(daoLink)
+	return archObj
+	
+#post a digital object back to Aspace
+def postDAO(session, repo, daoObject, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	
+	daoString = json.dumps(daoObject)
+	if "uri" in daoObject.keys():
+		daoURI = daoObject.uri
+		postDAO = requests.post(aspaceLogin[0] + daoURI, data=daoString, headers=session)
+	else:
+		postDAO = requests.post(aspaceLogin[0] + "/repositories/" + str(repo) + "/digital_objects", data=daoString, headers=session)
+	checkError(postDAO)
+	return postDAO
 	
 
 ################################################################
 #EXPORTING EAD
 ################################################################
 
+#export a resource to an EAD XML file
 def exportResource(session, repo, resourceObject, destination, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
@@ -791,7 +871,26 @@ def exportResource(session, repo, resourceObject, destination, aspaceLogin = Non
 		print ("Export Error: " + str(ead.status_code))
 	else:
 		outputPath = os.path.join(destination, resourceID0 + ".xml")
-		f = open(outputPath, 'w')
+		f = open(outputPath, 'w', encoding='utf-8')
 		f.write(ead.text)
+		f.close()
+		return outputPath
+		
+#export a resource to a PDF file
+def exportPDF(session, repo, resourceObject, destination, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	resourceID = resourceObject.uri.split("/resources/")[1]
+	resourceID0 = resourceObject.id_0
+	
+	pdf = requests.get(aspaceLogin[0] + "/repositories/" + repo + "/resource_descriptions/" +str(resourceID) + ".pdf", headers=session)
+	
+	if not pdf.status_code == 200:
+		print ("Export Error: " + str(pdf.status_code))
+	else:
+		outputPath = os.path.join(destination, resourceID0 + ".pdf")
+		f = open(outputPath, 'wb')
+		f.write(pdf.content)
 		f.close()
 		return outputPath

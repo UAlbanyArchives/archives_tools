@@ -49,6 +49,7 @@ def location2ASpace(coordinates, note = None):
 		coord1, coord2Note = coordinates.split("/")
 		if "(" in coord2Note:
 			coord2 = coord2Note.split("(")[0].strip()
+			coordList["Note"] = coord2Note.split("(")[1].split(")")[0].strip()
 		else:
 			coord2 = coord2Note
 		if coord1.split("-")[2] == coord2.split("-")[2]:
@@ -84,8 +85,6 @@ def location2ASpace(coordinates, note = None):
 						coordList = mainShelf(coordStart + str(bay) + "-" + str(shelf))
 						totalList.append(coordList)
 			coordList = totalList
-		if "(" in coord2Note:
-			coordList["Note"] = coord2Note.split("(")[1].split(")")[0].strip()
 	
 	else:
 		#single shelf
@@ -187,7 +186,7 @@ def location2ASpace(coordinates, note = None):
 				coordList["Place1"] = coordRange.split("-")[1]
 				coordList["Label2"] = "Shelf"
 				coordList["Place2"] = coordRange.split("-")[2]
-				coordList["Title"] = 	"Science Library, 3, Cold Storage [Bay: " + coordRange.split("-")[1] + ", Shelf: " + coordRange.split("-")[2] + "]"
+				coordList["Title"] = "Science Library, 3, Cold Storage [Bay: " + coordRange.split("-")[1] + ", Shelf: " + coordRange.split("-")[2] + "]"
 			elif len(coordRange.split("-")) == 4:
 				coordList["Label1"] = "Cabinet"
 				coordList["Place1"] = coordRange.split("-")[1]
@@ -240,8 +239,10 @@ def location2ASpace(coordinates, note = None):
 	
 def ASpace2Location(locationTitle):
 	if "CCBE" in locationTitle:
-		#index out of rance for apap306?
-		locationOutput = "CCBE-" + locationTitle.split("Row: ")[1].replace("]", "")
+		if "-" in locationTitle:
+			locationOutput = "CCBE-" + locationTitle.split("Row: ")[1].replace("]", "")
+		else:
+			locationOutput = "CCBE"
 		
 	elif "Reading Room" in locationTitle:
 		locationOutput = "RR-" + locationTitle.split("Shelf: ")[1].replace("]", "")
