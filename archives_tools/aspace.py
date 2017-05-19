@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import requests
@@ -230,6 +231,16 @@ def getLocationList(session, aspaceLogin = None):
 	locationData= requests.get(aspaceLogin[0] + "/locations?all_ids=true",  headers=session)
 	checkError(locationData)
 	return locationData.json()
+	
+#get a list of digital objects
+def getDAOList(session, repo, aspaceLogin = None):
+
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	daoData= requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/digital_objects?all_ids=true",  headers=session)
+	checkError(daoData)
+	return daoData.json()
 		
 ################################################################
 #REQUEST FUNCTIONS
@@ -261,6 +272,8 @@ def multipleRequest(session, repo, param, requestType, aspaceLogin = None):
 			numberSet = getContainerList(session, repo, aspaceLogin)
 		elif requestType.lower() == "locations":
 			numberSet = getLocationList(session, aspaceLogin)
+		elif requestType.lower() == "digital_objects":
+			numberSet = getDAOList(session, repo, aspaceLogin)
 		returnList = []
 		for number in numberSet:
 			if  requestType.lower() == "subjects" or requestType.lower() == "locations":
@@ -435,10 +448,10 @@ def getChildren(session, object, aspaceLogin = None):
 	
 	def findChild(tree, uri, childrenObject):
 		for child in tree["children"]:
-			if len(child["children"]) < 1:
-				pass
-			elif child["record_uri"] == uri:
+			if child["record_uri"] == uri:
 				childrenObject = makeObject(child)
+			elif len(child["children"]) < 1:
+				pass
 			else:
 				childrenObject = findChild(child, uri, childrenObject)
 		return childrenObject
@@ -455,9 +468,10 @@ def getChildren(session, object, aspaceLogin = None):
 		#limit to only children below original archival object
 		childrenObject = findChild(childrenData.json(), aoURI, None)
 		if childrenObject is None:
-			print ("ERROR could not find archival object in resource tree, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
-		elif len(childrenObject["children"]) < 1:
-			print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + aoURI.ref_id)
+			print ("ERROR could not find archival object in resource tree, uri: " + aoURI + " ref_id: " + object.ref_id)
+		#now just returns patent object, even if with .children being empty. This way it won't just fail if there is no children
+		#elif len(childrenObject["children"]) < 1:
+			#print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + object.ref_id)
 		else:
 			return childrenObject
 
@@ -498,7 +512,7 @@ def getArchObjID(session, repo, refID, aspaceLogin = None):
 		aoObject = getArchObj(session, recordUri, aspaceLogin)
 		return aoObject
 		
-#creates an empty resource
+#creates an empty archival object
 def makeArchObj():
 	objectString = '{"jsonmodel_type":"archival_object","external_ids":[],"subjects":[],"linked_events":[],"extents":[],"dates":[],"external_documents":[],"rights_statements":[],"linked_agents":[],"restrictions_apply":false,"instances":[],"notes":[],"title":"","level":""}'
 	emptyArchObj = json.loads(objectString)
@@ -626,8 +640,11 @@ def makeSingleNote(object, type, text):
 	return object
 	
 #adds a single part notes
-def makeMultiNote(object, type, text):
-	note = {"type": type, "jsonmodel_type": "note_multipart", "publish": True,"subnotes": [{"content": text, "jsonmodel_type": "note_text", "publish": True}]}
+def makeMultiNote(object, type, text, label = None):
+	if label == None:
+		note = {"type": type, "jsonmodel_type": "note_multipart", "publish": True,"subnotes": [{"content": text, "jsonmodel_type": "note_text", "publish": True}]}
+	else:
+		note = {"type": type, "label": label, "jsonmodel_type": "note_multipart", "publish": True,"subnotes": [{"content": text, "jsonmodel_type": "note_text", "publish": True}]}
 	if object.notes is None:
 		object.notes = [note]
 	else:
@@ -655,7 +672,7 @@ def getSubject(session, uri, aspaceLogin = None):
 	return subjectObject
 
 #adds a subject reference
-def addSubject(session, object, subjectRef):
+def addSubject(object, subjectRef):
 
 	if object.subjects is None:
 		object.subjects = [{"ref": subjectRef}]
@@ -663,7 +680,22 @@ def addSubject(session, object, subjectRef):
 		object.subjects.append({"ref": subjectRef})
 	return object
 			
-
+#returns items with a subject
+def withSubject(session, repo, query, source, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	itemList = []
+	response = requests.get(aspaceLogin[0] + "/repositories/" + str(repo) + "/search?page=1&filter_term[]={\"subjects\"%3A\"" + str(query).replace(" ", "+") + "\"}",  headers=session)
+	checkError(response)
+	#pp(response.json())
+	if len(response.json()["results"]) < 1:
+		print ("Error: could not find any items with the subject " + str(query))
+	else:
+		for result in response.json()["results"]:
+			if result["source_enum_s"][0].lower() == str(source).lower():
+				itemList.append(makeObject(json.loads(result["json"])))
+		return itemList
 
 
 ################################################################
@@ -822,11 +854,29 @@ def getDAO(session, repo, daoURI, aspaceLogin = None):
 	daoObject = makeObject(daoData.json())
 	return daoObject
 	
+#this will come in handy
+# http://localhost:8089/search?page=1&filter_term[]={“primary_type”:“digital_object”}&q=“3181”
+
+
+#returns a list of digital objects you can iterate though with all, a set, or a range of resource numbers
+def getDAOs(session, repo, param, aspaceLogin = None):
+	#get ASpace Login info
+	aspaceLogin = getLogin(aspaceLogin)
+	
+	daoList = multipleRequest(session, repo, param, "digital_objects", aspaceLogin)
+	return daoList
+	
 #make an individual archival_object
-def makeDAO(daoTitle, fileURL):
+def makeDAO(daoTitle, fileURL, hash = None, hashMethod = None):
 	daoUUID = str(uuid.uuid4())
 	daoObject = {"jsonmodel_type": "digital_object", "external_ids": [], "subjects": [], "linked_events": [], "extents": [], "dates": [], "external_documents": [], "rights_statements": [], "linked_agents": [], "file_versions": [], "restrictions": False, "notes": [], "linked_instances": [], "title": daoTitle, "language": "", "digital_object_id": daoUUID}
-	fileVersion = { "jsonmodel_type":"file_version", "is_representative": True, "file_uri": fileURL, "use_statement": "", "xlink_actuate_attribute":"none", "xlink_show_attribute":"embed"}
+	if hash is None:
+		fileVersion = { "jsonmodel_type":"file_version", "is_representative": True, "file_uri": fileURL, "use_statement": "", "xlink_actuate_attribute":"none", "xlink_show_attribute":"embed"}
+	else:
+		if hashMethod is None:
+			fileVersion = { "jsonmodel_type":"file_version", "is_representative": True, "file_uri": fileURL, "use_statement": "", "checksum": hash, "xlink_actuate_attribute":"none", "xlink_show_attribute":"embed"}
+		else:
+			fileVersion = { "jsonmodel_type":"file_version", "is_representative": True, "file_uri": fileURL, "use_statement": "", "checksum": hash, "checksum_method": hashMethod, "xlink_actuate_attribute":"none", "xlink_show_attribute":"embed"}
 	daoObject["file_versions"].append(fileVersion)
 	
 	daoObject = makeObject(daoObject)
