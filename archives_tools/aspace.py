@@ -321,7 +321,12 @@ def deleteObject(session, object, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 	
-	uri = object.uri
+	if "uri" in object.keys():
+		uri = object.uri
+	elif "record_uri" in object.keys():
+		uri = object.record_uri
+	else:
+		print ("ERROR: Could not find uri for record")
 	deleteRequest = requests.delete(aspaceLogin[0] + str(uri),  headers=session)
 	checkError(deleteRequest)
 	return deleteRequest.status_code
@@ -478,7 +483,7 @@ def getChildren(session, object, aspaceLogin = None):
 	else:
 		#get children of a resource
 		childrenData = getTree(session, object, aspaceLogin)
-		return childrenData["children"]
+		return childrenData
 		
 	
 ################################################################
