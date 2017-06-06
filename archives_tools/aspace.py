@@ -10,10 +10,17 @@ import uuid
 
 #funtions for debugging
 def pp(output):
-	print (json.dumps(output, indent=2))
+	try:
+		print (json.dumps(output, indent=2))
+	except:
+		import ast
+		print (json.dumps(ast.literal_eval(str(output)), indent=2))
 def serializeOutput(filePath, output):
 	f = open(filePath, "w")
-	f.write(json.dumps(output, indent=2))
+	try:
+		f.write(json.dumps(output, indent=2))
+	except:
+		f.write(json.dumps(ast.literal_eval(str(output)), indent=2))
 	f.close
 def fields(object):
 	for key in object.keys():
@@ -308,9 +315,12 @@ def postObject(session, object, aspaceLogin = None):
 	aspaceLogin = getLogin(aspaceLogin)
 			
 	uri = object.uri
-	#del object['fields']
-	#del object['json']
-	objectString = json.dumps(object)
+	
+	try:
+		objectString = json.dumps(object)
+	except:
+		import ast
+		objectString = json.dumps(ast.literal_eval(str(object)))
 	
 	postData = requests.post(aspaceLogin[0] + str(uri), data=objectString, headers=session)
 	checkError(postData)
@@ -422,7 +432,11 @@ def postResource(session, repo, resourceObject, aspaceLogin = None):
 		if len(resourceObject.uri) > 0:
 			path = resourceObject.uri
 			
-	resourceString = json.dumps(resourceObject)
+	try:
+		resourceString = json.dumps(resourceObject)
+	except:
+		import ast
+		resourceString = json.dumps(ast.literal_eval(str(resourceObject)))
 	
 	postResource = requests.post(aspaceLogin[0] + path, data=resourceString, headers=session)
 	checkError(postResource)
