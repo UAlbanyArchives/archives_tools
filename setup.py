@@ -2,12 +2,12 @@
 
 from setuptools import setup
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 
 if __name__ == "__main__":
 	setup(name='archives_tools',
-	      version='0.2',
+	      version='0.3',
 	      description='Some Python scripts for working with archives metadata and digital archives',
 	      author='Gregory Wiedeman',
 	      author_email='gwiedeman@albany.edu',
@@ -15,7 +15,7 @@ if __name__ == "__main__":
 	      install_requires=[
 			"requests",
 			"easydict",
-			"ConfigParser",
+			"configparser",
 	      ],
 	      packages=['archives_tools'],
 	     )
