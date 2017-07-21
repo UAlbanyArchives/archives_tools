@@ -108,11 +108,16 @@ def getSession(aspaceLogin = None):
 		
 	#inital request for session
 	r = requests.post(aspaceLogin[0] + "/users/" + aspaceLogin[1]  + "/login", data = {"password":aspaceLogin[2]})
-	checkError(r)	
-	print ("ASpace Connection Successful")
-	sessionID = r.json()["session"]
-	session = {'X-ArchivesSpace-Session':sessionID}
-	return session
+	if r.status_code == 403:
+		print ("ASpace Connection Failed. Response 403, invalid credentials. Please check credentials in local_settings.cfg")
+	elif r.status_code != 200:
+		print ("ASpace Connection Failed. Response " + str(r.status_code) + ". Please check settings in local_settings.cfg")
+	else:
+		checkError(r)	
+		print ("ASpace Connection Successful")
+		sessionID = r.json()["session"]
+		session = {'X-ArchivesSpace-Session':sessionID}
+		return session
 		
 
 	
