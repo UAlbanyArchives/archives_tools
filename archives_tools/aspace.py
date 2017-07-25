@@ -907,8 +907,15 @@ def makeDAO(daoTitle, fileURL, hash = None, hashMethod = None):
 	return daoObject	
 
 #adds a digital object instance to an archival object
-def addDAO(archObj, daoURI):
-	daoLink = {"jsonmodel_type": "instance", "digital_object": {"ref": daoURI}, "instance_type": "digital_object", "is_representative": True}
+def addDAO(archObj, daoURI, representative = None):
+	if not representative is None:
+		if str(representative).strip().lower() == "false":
+			repSetting = False
+		else:
+			repSetting = True
+	else:
+		repSetting = True
+	daoLink = {"jsonmodel_type": "instance", "digital_object": {"ref": daoURI}, "instance_type": "digital_object", "is_representative": repSetting}
 	archObj["instances"].append(daoLink)
 	return archObj
 	
