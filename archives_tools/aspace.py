@@ -44,30 +44,40 @@ def checkError(response):
 	
 #reads config file for lower functions
 def readConfig():
-	__location__ = os.path.dirname(os.path.realpath(__file__))
-
-	#load config file from same directory
-	configPath = os.path.join(__location__, "local_settings.cfg")
+	#load config file from user directory
+	if os.name == "nt":
+		configPath = os.path.join(os.getenv("APPDATA"), ".aspaceLibrary")
+	else:
+		configPath = os.path.join(os.path.expanduser("~"), ".aspaceLibrary")
+	if not os.path.isdir(configPath):
+		os.makedirs(configPath)
+	configFile = os.path.join(configPath, "local_settings.cfg")
 	config = configparser.ConfigParser()
-	config.read(configPath)
+	config.read(configFile)
 	return config
 	
 #writes the config file back
 def writeConfig(config):
-	__location__ = os.path.dirname(os.path.realpath(__file__))
-
-	#load config file from same directory
-	configPath = os.path.join(__location__, "local_settings.cfg")
-	with open(configPath, 'w') as f:
+	#load config file from user directory
+	if os.name == "nt":
+		configPath = os.path.join(os.getenv("APPDATA"), ".aspaceLibrary")
+	else:
+		configPath = os.path.join(os.path.expanduser("~"), ".aspaceLibrary")
+	if not os.path.isdir(configPath):
+		os.makedirs(configPath)
+	configFile = os.path.join(configPath, "local_settings.cfg")
+	with open(configFile, 'w') as f:
 		config.write(f)
 	
 #basic function to get ASpace login details from a config file
 def getLogin(aspaceLogin = None):
 	if aspaceLogin is None:
-		config = readConfig()
-		
-		#make tuple with basic ASpace login info
-		aspaceLogin = (config.get('ArchivesSpace', 'baseURL'), config.get('ArchivesSpace', 'user'), config.get('ArchivesSpace', 'password'))
+		try:
+			config = readConfig()
+			#make tuple with basic ASpace login info
+			aspaceLogin = (config.get('ArchivesSpace', 'baseURL'), config.get('ArchivesSpace', 'user'), config.get('ArchivesSpace', 'password'))
+		except:
+			raise ValueError("ERROR: No config file present. Enter credentials with setURL(), setPassword(), or use a tuple, like: session = AS.getSession(\"http://localhost:8089\", \"admin\", \"admin\")")
 		return aspaceLogin
 	else:
 		return aspaceLogin

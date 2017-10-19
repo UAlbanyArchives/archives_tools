@@ -2,12 +2,12 @@
 
 from setuptools import setup
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 
 if __name__ == "__main__":
 	setup(name='archives_tools',
-	      version='0.3',
+	      version='0.4',
 	      description='Some Python scripts for working with archives metadata and digital archives',
 	      author='Gregory Wiedeman',
 	      author_email='gwiedeman@albany.edu',

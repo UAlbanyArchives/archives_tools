@@ -10,10 +10,17 @@ import uuid
 
 #funtions for debugging
 def pp(output):
-	print (json.dumps(output, indent=2))
+	try:
+		print (json.dumps(output, indent=2))
+	except:
+		import ast
+		print (json.dumps(ast.literal_eval(str(output)), indent=2))
 def serializeOutput(filePath, output):
 	f = open(filePath, "w")
-	f.write(json.dumps(output, indent=2))
+	try:
+		f.write(json.dumps(output, indent=2))
+	except:
+		f.write(json.dumps(ast.literal_eval(str(output)), indent=2))
 	f.close
 def fields(object):
 	for key in object.keys():
@@ -37,30 +44,40 @@ def checkError(response):
 	
 #reads config file for lower functions
 def readConfig():
-	__location__ = os.path.dirname(os.path.realpath(__file__))
-
-	#load config file from same directory
-	configPath = os.path.join(__location__, "local_settings.cfg")
+	#load config file from user directory
+	if os.name == "nt":
+		configPath = os.path.join(os.getenv("APPDATA"), ".aspaceLibrary")
+	else:
+		configPath = os.path.join(os.path.expanduser("~"), ".aspaceLibrary")
+	if not os.path.isdir(configPath):
+		os.makedirs(configPath)
+	configFile = os.path.join(configPath, "local_settings.cfg")
 	config = configparser.ConfigParser()
-	config.read(configPath)
+	config.read(configFile)
 	return config
 	
 #writes the config file back
 def writeConfig(config):
-	__location__ = os.path.dirname(os.path.realpath(__file__))
-
-	#load config file from same directory
-	configPath = os.path.join(__location__, "local_settings.cfg")
-	with open(configPath, 'w') as f:
+	#load config file from user directory
+	if os.name == "nt":
+		configPath = os.path.join(os.getenv("APPDATA"), ".aspaceLibrary")
+	else:
+		configPath = os.path.join(os.path.expanduser("~"), ".aspaceLibrary")
+	if not os.path.isdir(configPath):
+		os.makedirs(configPath)
+	configFile = os.path.join(configPath, "local_settings.cfg")
+	with open(configFile, 'w') as f:
 		config.write(f)
 	
 #basic function to get ASpace login details from a config file
 def getLogin(aspaceLogin = None):
 	if aspaceLogin is None:
-		config = readConfig()
-		
-		#make tuple with basic ASpace login info
-		aspaceLogin = (config.get('ArchivesSpace', 'baseURL'), config.get('ArchivesSpace', 'user'), config.get('ArchivesSpace', 'password'))
+		try:
+			config = readConfig()
+			#make tuple with basic ASpace login info
+			aspaceLogin = (config.get('ArchivesSpace', 'baseURL'), config.get('ArchivesSpace', 'user'), config.get('ArchivesSpace', 'password'))
+		except:
+			raise ValueError("ERROR: No config file present. Enter credentials with setURL(), setPassword(), or use a tuple, like: session = AS.getSession(\"http://localhost:8089\", \"admin\", \"admin\")")
 		return aspaceLogin
 	else:
 		return aspaceLogin
@@ -101,11 +118,16 @@ def getSession(aspaceLogin = None):
 		
 	#inital request for session
 	r = requests.post(aspaceLogin[0] + "/users/" + aspaceLogin[1]  + "/login", data = {"password":aspaceLogin[2]})
-	checkError(r)	
-	print ("ASpace Connection Successful")
-	sessionID = r.json()["session"]
-	session = {'X-ArchivesSpace-Session':sessionID}
-	return session
+	if r.status_code == 403:
+		print ("ASpace Connection Failed. Response 403, invalid credentials. Please check credentials in local_settings.cfg")
+	elif r.status_code != 200:
+		print ("ASpace Connection Failed. Response " + str(r.status_code) + ". Please check settings in local_settings.cfg")
+	else:
+		checkError(r)	
+		print ("ASpace Connection Successful")
+		sessionID = r.json()["session"]
+		session = {'X-ArchivesSpace-Session':sessionID}
+		return session
 		
 
 	
@@ -308,9 +330,12 @@ def postObject(session, object, aspaceLogin = None):
 	aspaceLogin = getLogin(aspaceLogin)
 			
 	uri = object.uri
-	#del object['fields']
-	#del object['json']
-	objectString = json.dumps(object)
+	
+	try:
+		objectString = json.dumps(object)
+	except:
+		import ast
+		objectString = json.dumps(ast.literal_eval(str(object)))
 	
 	postData = requests.post(aspaceLogin[0] + str(uri), data=objectString, headers=session)
 	checkError(postData)
@@ -321,7 +346,12 @@ def deleteObject(session, object, aspaceLogin = None):
 	#get ASpace Login info
 	aspaceLogin = getLogin(aspaceLogin)
 	
-	uri = object.uri
+	if "uri" in object.keys():
+		uri = object.uri
+	elif "record_uri" in object.keys():
+		uri = object.record_uri
+	else:
+		print ("ERROR: Could not find uri for record")
 	deleteRequest = requests.delete(aspaceLogin[0] + str(uri),  headers=session)
 	checkError(deleteRequest)
 	return deleteRequest.status_code
@@ -417,7 +447,11 @@ def postResource(session, repo, resourceObject, aspaceLogin = None):
 		if len(resourceObject.uri) > 0:
 			path = resourceObject.uri
 			
-	resourceString = json.dumps(resourceObject)
+	try:
+		resourceString = json.dumps(resourceObject)
+	except:
+		import ast
+		resourceString = json.dumps(ast.literal_eval(str(resourceObject)))
 	
 	postResource = requests.post(aspaceLogin[0] + path, data=resourceString, headers=session)
 	checkError(postResource)
@@ -457,7 +491,6 @@ def getChildren(session, object, aspaceLogin = None):
 		return childrenObject
 		
 		
-		
 	if object.jsonmodel_type == "archival_object":
 		#get children of archival object
 		aoURI = object.uri
@@ -470,7 +503,7 @@ def getChildren(session, object, aspaceLogin = None):
 		childrenObject = findChild(childrenData.json(), aoURI, None)
 		if childrenObject is None:
 			print ("ERROR could not find archival object in resource tree, uri: " + aoURI + " ref_id: " + object.ref_id)
-		#now jsut returns patent object, even if with .children being empty. This way it won't just fail if there is no children
+		#now just returns patent object, even if with .children being empty. This way it won't just fail if there is no children
 		#elif len(childrenObject["children"]) < 1:
 			#print ("ERROR archival object has no children, uri: " + aoURI + " ref_id: " + object.ref_id)
 		else:
@@ -479,7 +512,7 @@ def getChildren(session, object, aspaceLogin = None):
 	else:
 		#get children of a resource
 		childrenData = getTree(session, object, aspaceLogin)
-		return childrenData["children"]
+		return childrenData
 		
 	
 ################################################################
@@ -884,8 +917,15 @@ def makeDAO(daoTitle, fileURL, hash = None, hashMethod = None):
 	return daoObject	
 
 #adds a digital object instance to an archival object
-def addDAO(archObj, daoURI):
-	daoLink = {"jsonmodel_type": "instance", "digital_object": {"ref": daoURI}, "instance_type": "digital_object", "is_representative": True}
+def addDAO(archObj, daoURI, representative = None):
+	if not representative is None:
+		if str(representative).strip().lower() == "false":
+			repSetting = False
+		else:
+			repSetting = True
+	else:
+		repSetting = True
+	daoLink = {"jsonmodel_type": "instance", "digital_object": {"ref": daoURI}, "instance_type": "digital_object", "is_representative": repSetting}
 	archObj["instances"].append(daoLink)
 	return archObj
 	
