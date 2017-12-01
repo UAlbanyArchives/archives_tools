@@ -154,52 +154,6 @@ def makeObject(jsonData):
 		#object.json = jsonData
 		return object
 		
-################################################################
-#OBJECTS
-################################################################	
-
-class Accession(object):
-
-	def __init__(self):
-			
-		#manditory stuff
-		self.id = ""
-		self.id_1 = ""
-		self.id_2 = ""
-		self.id_3 = ""
-		self.date = ""
-		
-		#common stuff
-		self.title = ""
-		self.content = ""
-		self.condition = ""
-		self.provenance = ""
-		
-		#restrictions
-		self.restrictionsApply = ""
-		self.accessRestrictions = ""
-		self.accessRestrictions = ""
-		self.useRestrictions = ""
-		self.useRestrictions = ""
-		
-		#if you really need them
-		self.acquisitionType = ""
-		self.resourceType = ""
-		self.disposition = ""
-		self.inventory = ""
-		self.retentionRule = ""
-		
-		#full json set
-		self.json = {}
-		
-	def toJSON(self):
-		pass
-		
-	def fromJSON(self, jsonSet):
-		pass
-		
-
-
 
 
 ################################################################
@@ -733,7 +687,7 @@ def withSubject(session, repo, query, source, aspaceLogin = None):
 
 
 ################################################################
-#CONTAINERS AND LOCATIONS
+#CONTAINERS
 ################################################################
 
 #takes a container uri string and returns a container Object
@@ -815,6 +769,11 @@ def makeContainer(session, repo, type, indicator, aspaceLogin = None):
 	
 	return boxObject
 
+
+################################################################
+#LOCATIONS
+################################################################
+	
 #takes a location uri string and returns a location Object
 def getLocations(session, repo, param, aspaceLogin = None):
 	#get ASpace Login info
@@ -946,7 +905,7 @@ def postDAO(session, repo, daoObject, aspaceLogin = None):
 	
 
 ################################################################
-#EXPORTING EAD
+#EXPORTING
 ################################################################
 
 #export a resource to an EAD XML file
