@@ -683,7 +683,10 @@ def withSubject(session, repo, query, source, aspaceLogin = None):
 		for result in response.json()["results"]:
 			if result["source_enum_s"][0].lower() == str(source).lower():
 				itemList.append(makeObject(json.loads(result["json"])))
-		return itemList
+		if len(itemList) < 1:
+			print ("Error: could not find any items with the subject " + str(query) + " with a source of " + str(source))
+		else:
+			return itemList
 
 
 ################################################################
